@@ -44,7 +44,7 @@ export function DeliveryHome() {
   return (
     <div className="min-h-dvh bg-[#66CCFF] text-zinc-900">
       <header className="sticky top-0 z-20 border-b border-sky-200/70 bg-[#66CCFF]/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-6 sm:py-4">
           <div>
             <div className="text-xs font-black tracking-wider text-zinc-700">DELIVERY</div>
             <h1 className="text-xl font-black tracking-tight">Delivery Dashboard</h1>
@@ -60,7 +60,7 @@ export function DeliveryHome() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-6 py-6">
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
         <div className="rounded-2xl border border-sky-200/70 bg-white/70 p-4 text-sm">
           {currentLocation ? (
             <span className="font-semibold">
@@ -95,7 +95,7 @@ export function DeliveryHome() {
                         : 'border-sky-200/70 bg-sky-50/70 hover:border-sky-300 hover:bg-white',
                     ].join(' ')}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col items-start justify-between gap-2 sm:flex-row">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-black text-zinc-900">{o.customerName}</div>
                         <div className="mt-0.5 text-xs font-semibold text-zinc-700">
@@ -124,12 +124,12 @@ export function DeliveryHome() {
               <div className="text-sm text-zinc-700">Select an order to view details.</div>
             ) : (
               <>
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                   <div>
                     <h2 className="text-lg font-black tracking-tight">{selectedOrder.customerName}</h2>
                     <div className="mt-1 text-sm text-zinc-700">{selectedOrder.customerEmail}</div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <div className="text-xs font-semibold text-zinc-700">Total value</div>
                     <div className="text-lg font-black text-zinc-900">
                       {formatInr(selectedOrder.subtotalInr)}
@@ -148,7 +148,7 @@ export function DeliveryHome() {
                   <iframe
                     title="Order map"
                     src={mapSrc}
-                    className="h-[320px] w-full"
+                    className="h-64 w-full sm:h-[320px]"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />
@@ -168,7 +168,7 @@ export function DeliveryHome() {
                         : `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`
                       window.open(navUrl, '_blank')
                     }}
-                    className="rounded-xl bg-white px-4 py-3 text-xs font-black tracking-wider text-zinc-950 transition hover:bg-zinc-100"
+                    className="w-full rounded-xl bg-white px-4 py-3 text-xs font-black tracking-wider text-zinc-950 transition hover:bg-zinc-100 sm:w-auto"
                   >
                     CONFIRM ORDER + START NAVIGATION
                   </button>

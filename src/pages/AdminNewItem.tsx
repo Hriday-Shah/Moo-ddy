@@ -25,6 +25,7 @@ export function AdminNewItem() {
   const [price, setPrice] = useState<string>('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
+  const [imageCredit, setImageCredit] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string>('')
 
@@ -74,6 +75,7 @@ export function AdminNewItem() {
                     name: name.trim(),
                     priceInr: parsedPrice,
                     imageUrl: imagePreview,
+                    ...(imageCredit.trim() ? { imageCredit: imageCredit.trim() } : {}),
                   })
                   navigate('/admin')
                 } catch (err) {
@@ -112,6 +114,21 @@ export function AdminNewItem() {
                 />
                 <div className="text-xs font-semibold text-zinc-700">
                   Stored locally for now (no backend yet).
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-xs font-black tracking-wider text-zinc-700">
+                  IMAGE CREDIT <span className="font-semibold text-zinc-500">(optional)</span>
+                </label>
+                <input
+                  value={imageCredit}
+                  onChange={(e) => setImageCredit(e.target.value)}
+                  placeholder='e.g. Photo: Your Name or Unsplash — name'
+                  className="h-11 w-full rounded-xl border border-sky-200/60 bg-white/60 px-3 text-sm font-semibold text-zinc-900 placeholder:text-zinc-500 outline-none transition focus:border-sky-300 focus:bg-white/80"
+                />
+                <div className="text-xs font-semibold text-zinc-700">
+                  This line appears under the product image for customers.
                 </div>
               </div>
 
@@ -177,6 +194,11 @@ export function AdminNewItem() {
                 <div className="mt-0.5 text-xs font-bold tracking-wide text-zinc-700">
                   {parsedPrice === null ? formatInr(0) : formatInr(parsedPrice)}
                 </div>
+                {imageCredit.trim() ? (
+                  <div className="mt-2 text-[10px] font-semibold leading-snug text-zinc-600">
+                    {imageCredit.trim()}
+                  </div>
+                ) : null}
                 {imageFile ? (
                   <div className="mt-2 text-xs font-semibold text-zinc-700">
                     File: <span className="font-black text-zinc-900">{imageFile.name}</span>

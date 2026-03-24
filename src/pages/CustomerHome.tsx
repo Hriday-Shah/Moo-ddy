@@ -131,12 +131,12 @@ export function CustomerHome() {
   return (
     <div className="min-h-dvh bg-[#66CCFF] text-zinc-900">
       <header className="sticky top-0 z-20 border-b border-sky-200/70 bg-[#66CCFF]/80 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-4 sm:px-6 sm:py-4">
           <div className="min-w-0">
             <img
               src="/mooo-dy.png"
               alt="mooo-dy"
-              className="h-12 w-auto"
+              className="h-10 w-auto sm:h-12"
               onError={(e) => {
                 const img = e.currentTarget
                 if (img.src.includes('/mooo-dy.png')) {
@@ -147,11 +147,11 @@ export function CustomerHome() {
               }}
             />
           </div>
-          <div className="text-center">
-            <div className="text-xl font-black tracking-tight">Mooo-dy dairy</div>
+          <div className="text-center sm:text-center">
+            <div className="text-lg font-black tracking-tight sm:text-xl">Mooo-dy dairy</div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-start gap-2 sm:justify-end">
             <div className="flex rounded-full border border-sky-200/70 bg-sky-50/70 p-1">
               <button
                 type="button"
@@ -186,7 +186,7 @@ export function CustomerHome() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-6 py-6">
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
         {phrases.length > 0 ? (
           <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
             <div className="mt-1 text-sm font-black tracking-tight text-zinc-950">
@@ -242,6 +242,12 @@ export function CustomerHome() {
                         </div>
                       </div>
                     </button>
+
+                    {p.imageCredit ? (
+                      <p className="px-4 text-[10px] font-semibold leading-snug text-zinc-600">
+                        {p.imageCredit}
+                      </p>
+                    ) : null}
 
                     <div className="flex items-center justify-between gap-3 px-4 py-3">
                       <div className="text-xs font-semibold text-zinc-700">
@@ -309,41 +315,40 @@ export function CustomerHome() {
                 <>
                   <div className="mt-5 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
                     {lines.map((l) => (
-                      <div
-                        key={l.product.id}
-                        className="flex items-center gap-3 bg-sky-50/60 p-4"
-                      >
-                        <div className="min-w-0 flex-1">
+                      <div key={l.product.id} className="bg-sky-50/60 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                          <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-black tracking-tight text-zinc-900">
                             {l.product.name}
                           </div>
                           <div className="mt-0.5 text-xs font-semibold text-zinc-700">
                             {formatInr(l.product.priceInr)} each
                           </div>
-                        </div>
+                          </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setQty(l.product, l.qty - 1)}
-                            className="h-9 w-9 rounded-xl border border-sky-200 bg-white/60 text-sm font-black text-zinc-900 transition hover:border-sky-300 hover:bg-white"
-                            aria-label={`Decrease ${l.product.name} quantity`}
-                          >
-                            −
-                          </button>
-                          <div className="w-10 text-center text-sm font-black">{l.qty}</div>
-                          <button
-                            type="button"
-                            onClick={() => setQty(l.product, l.qty + 1)}
-                          className="h-9 w-9 rounded-xl border border-sky-200 bg-white/60 text-sm font-black text-zinc-900 transition hover:border-sky-300 hover:bg-white"
-                            aria-label={`Increase ${l.product.name} quantity`}
-                          >
-                            +
-                          </button>
-                        </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setQty(l.product, l.qty - 1)}
+                              className="h-9 w-9 rounded-xl border border-sky-200 bg-white/60 text-sm font-black text-zinc-900 transition hover:border-sky-300 hover:bg-white"
+                              aria-label={`Decrease ${l.product.name} quantity`}
+                            >
+                              −
+                            </button>
+                            <div className="w-10 text-center text-sm font-black">{l.qty}</div>
+                            <button
+                              type="button"
+                              onClick={() => setQty(l.product, l.qty + 1)}
+                              className="h-9 w-9 rounded-xl border border-sky-200 bg-white/60 text-sm font-black text-zinc-900 transition hover:border-sky-300 hover:bg-white"
+                              aria-label={`Increase ${l.product.name} quantity`}
+                            >
+                              +
+                            </button>
+                          </div>
 
-                        <div className="w-24 text-right text-sm font-black text-zinc-900">
-                          {formatInr(l.qty * l.product.priceInr)}
+                          <div className="text-left text-sm font-black text-zinc-900 sm:w-24 sm:text-right">
+                            {formatInr(l.qty * l.product.priceInr)}
+                          </div>
                         </div>
                       </div>
                     ))}

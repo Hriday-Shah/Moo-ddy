@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { removeProduct, useProducts } from '../data/products'
+import { removeProduct, updateProductImageCredit, useProducts, type Product } from '../data/products'
 import { useOrders } from '../data/orders'
 
 function formatInr(amount: number) {
@@ -9,6 +9,40 @@ function formatInr(amount: number) {
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(amount)
+}
+
+function ProductImageCreditField({ product }: { product: Product }) {
+  const [value, setValue] = useState(product.imageCredit ?? '')
+  useEffect(() => {
+    setValue(product.imageCredit ?? '')
+  }, [product.id, product.imageCredit])
+
+  return (
+    <div className="border-t border-sky-200/50 px-4 py-3">
+      <label className="text-[10px] font-black tracking-wider text-zinc-700" htmlFor={`img-credit-${product.id}`}>
+        IMAGE CREDIT
+      </label>
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <input
+          id={`img-credit-${product.id}`}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="e.g. Photo: name / source"
+          className="min-w-0 flex-1 rounded-xl border border-sky-200/60 bg-white/60 px-3 py-2 text-xs font-semibold text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-sky-300 focus:bg-white"
+        />
+        <button
+          type="button"
+          onClick={() => updateProductImageCredit(product.id, value)}
+          className="rounded-xl bg-white px-3 py-2 text-[10px] font-black tracking-wider text-zinc-950 transition hover:bg-zinc-100 sm:shrink-0"
+        >
+          SAVE
+        </button>
+      </div>
+      <p className="mt-2 text-[10px] font-semibold text-zinc-600">
+        Shown under the product image on the customer shop.
+      </p>
+    </div>
+  )
 }
 
 export function AdminHome() {
@@ -112,9 +146,7 @@ export function AdminHome() {
                     </button>
                   </div>
                 </div>
-                <div className="px-4 py-3 text-xs font-semibold text-zinc-700">
-                  Customer visible
-                </div>
+                <ProductImageCreditField product={p} />
               </div>
             ))}
           </div>

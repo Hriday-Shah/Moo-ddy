@@ -5,6 +5,8 @@ export type Product = {
   name: string
   priceInr: number
   imageUrl: string
+  /** Shown on the customer shop under the product image (e.g. photo credit). */
+  imageCredit?: string
   createdAt: number
 }
 
@@ -79,6 +81,20 @@ export function addProduct(input: Omit<Product, 'id' | 'createdAt'>) {
 export function removeProduct(productId: string) {
   const products = getProducts()
   setProducts(products.filter((p) => p.id !== productId))
+}
+
+export function updateProductImageCredit(productId: string, imageCredit: string) {
+  const products = getProducts()
+  const idx = products.findIndex((p) => p.id === productId)
+  if (idx < 0) return
+  const trimmed = imageCredit.trim()
+  const prev = products[idx]
+  const nextProduct: Product = { ...prev }
+  if (trimmed) nextProduct.imageCredit = trimmed
+  else delete nextProduct.imageCredit
+  const next = [...products]
+  next[idx] = nextProduct
+  setProducts(next)
 }
 
 export function useProducts() {
