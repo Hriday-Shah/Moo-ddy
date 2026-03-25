@@ -13,10 +13,21 @@ function formatInr(amount: number) {
 async function fileToDataUrl(file: File): Promise<string> {
   return await new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.onerror = () => reject(new Error('Could not read the selected image file. Try a different image.'))
     reader.onload = () => resolve(String(reader.result))
     reader.readAsDataURL(file)
   })
+}
+
+function describeSaveError(err: unknown) {
+  if (err instanceof DuplicateProductNameError) {
+    return 'Item name already exists. Use a different name.'
+  }
+  if (err instanceof Error) {
+    const msg = err.message.trim()
+    if (msg) return msg
+  }
+  return 'Could not save item. Please try again.'
 }
 
 export function AdminNewItem() {
@@ -36,6 +47,14 @@ export function AdminNewItem() {
   }, [price])
 
   const canSubmit = name.trim().length > 0 && parsedPrice !== null && imagePreview.length > 0
+  const submitDisabledReason =
+    name.trim().length === 0
+      ? 'Enter an item name.'
+      : parsedPrice === null
+        ? 'Enter a valid price.'
+        : imagePreview.length === 0
+          ? 'Select an image.'
+          : ''
 
   return (
     <div className="min-h-dvh bg-[#66CCFF] text-zinc-900">
@@ -68,7 +87,10 @@ export function AdminNewItem() {
               onSubmit={async (e) => {
                 e.preventDefault()
                 setError('')
-                if (!canSubmit || saving || parsedPrice === null) return
+                if (!canSubmit || saving || parsedPrice === null) {
+                  if (submitDisabledReason) setError(submitDisabledReason)
+                  return
+                }
                 setSaving(true)
                 try {
                   addProduct({
@@ -79,11 +101,7 @@ export function AdminNewItem() {
                   })
                   navigate('/admin')
                 } catch (err) {
-                  if (err instanceof DuplicateProductNameError) {
-                    setError('Item name already exists. Use a different name.')
-                  } else {
-                    setError('Could not save item. Please try again.')
-                  }
+                  setError(describeSaveError(err))
                 } finally {
                   setSaving(false)
                 }
@@ -102,14 +120,20 @@ export function AdminNewItem() {
                   required
                   className="block w-full rounded-xl border border-sky-200/60 bg-white/60 p-3 text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-xs file:font-black file:tracking-wider file:text-zinc-950 hover:border-sky-300"
                   onChange={async (e) => {
+                    setError('')
                     const file = e.target.files?.[0] ?? null
                     setImageFile(file)
                     if (!file) {
                       setImagePreview('')
                       return
                     }
-                    const dataUrl = await fileToDataUrl(file)
-                    setImagePreview(dataUrl)
+                    try {
+                      const dataUrl = await fileToDataUrl(file)
+                      setImagePreview(dataUrl)
+                    } catch (err) {
+                      setImagePreview('')
+                      setError(describeSaveError(err))
+                    }
                   }}
                 />
                 <div className="text-xs font-semibold text-zinc-700">
