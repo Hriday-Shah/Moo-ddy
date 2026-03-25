@@ -46,7 +46,8 @@ export function AdminNewItem() {
     return Math.max(0, Math.round(p))
   }, [price])
 
-  const canSubmit = name.trim().length > 0 && parsedPrice !== null && imagePreview.length > 0
+  const canSubmit =
+    name.trim().length > 0 && parsedPrice !== null && imagePreview.length > 0 && !!imageFile
   const submitDisabledReason =
     name.trim().length === 0
       ? 'Enter an item name.'
@@ -93,10 +94,11 @@ export function AdminNewItem() {
                 }
                 setSaving(true)
                 try {
-                  addProduct({
+                  if (!imageFile) throw new Error('Select an image.')
+                  await addProduct({
                     name: name.trim(),
                     priceInr: parsedPrice,
-                    imageUrl: imagePreview,
+                    imageFile,
                     ...(imageCredit.trim() ? { imageCredit: imageCredit.trim() } : {}),
                   })
                   navigate('/admin')

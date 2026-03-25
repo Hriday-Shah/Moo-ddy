@@ -13,6 +13,8 @@ function formatInr(amount: number) {
 
 function ProductImageCreditField({ product }: { product: Product }) {
   const [value, setValue] = useState(product.imageCredit ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   useEffect(() => {
     setValue(product.imageCredit ?? '')
   }, [product.id, product.imageCredit])
@@ -32,12 +34,27 @@ function ProductImageCreditField({ product }: { product: Product }) {
         />
         <button
           type="button"
-          onClick={() => updateProductImageCredit(product.id, value)}
-          className="rounded-xl bg-white px-3 py-2 text-[10px] font-black tracking-wider text-zinc-950 transition hover:bg-zinc-100 sm:shrink-0"
+          disabled={saving}
+          onClick={async () => {
+            setError('')
+            setSaving(true)
+            try {
+              await updateProductImageCredit(product.id, value)
+            } catch (err) {
+              setError(err instanceof Error && err.message ? err.message : 'Could not save image credit.')
+            } finally {
+              setSaving(false)
+            }
+          }}
+          className={[
+            'rounded-xl px-3 py-2 text-[10px] font-black tracking-wider transition sm:shrink-0',
+            saving ? 'cursor-not-allowed bg-white/50 text-zinc-500' : 'bg-white text-zinc-950 hover:bg-zinc-100',
+          ].join(' ')}
         >
-          SAVE
+          {saving ? 'SAVING…' : 'SAVE'}
         </button>
       </div>
+      {error ? <p className="mt-2 text-[10px] font-semibold text-red-700">{error}</p> : null}
       <p className="mt-2 text-[10px] font-semibold text-zinc-600">
         Shown under the product image on the customer shop.
       </p>
@@ -49,6 +66,7 @@ export function AdminHome() {
   const products = useProducts()
   const orders = useOrders()
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products')
+  const [actionError, setActionError] = useState('')
 
   const totalOrders = useMemo(() => orders.length, [orders.length])
 
@@ -64,6 +82,11 @@ export function AdminHome() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl px-6 py-6">
+        {actionError ? (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-900">
+            {actionError}
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="truncate text-2xl font-black tracking-tight">Dashboard</h2>
@@ -138,7 +161,18 @@ export function AdminHome() {
                   <div className="absolute right-3 top-3">
                     <button
                       type="button"
-                      onClick={() => removeProduct(p.id)}
+                      onClick={async () => {
+                        setActionError('')
+                        try {
+                          await removeProduct(p.id)
+                        } catch (err) {
+                          setActionError(
+                            err instanceof Error && err.message
+                              ? err.message
+                              : 'Could not remove product. Check admin access.',
+                          )
+                        }
+                      }}
                       className="rounded-xl border border-red-200/50 bg-white/80 px-3 py-2 text-[11px] font-black tracking-wider text-zinc-950 transition hover:border-red-300 hover:bg-red-100"
                       aria-label={`Remove ${p.name}`}
                     >
