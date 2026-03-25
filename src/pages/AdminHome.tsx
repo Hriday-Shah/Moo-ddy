@@ -182,12 +182,18 @@ export function AdminHome() {
                       <div
                         className={[
                           'mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-black tracking-wider',
-                          o.status === 'on_the_way'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800',
+                          o.status === 'delivered'
+                            ? 'bg-slate-100 text-slate-700'
+                            : o.status === 'on_the_way'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800',
                         ].join(' ')}
                       >
-                        {o.status === 'on_the_way' ? 'ON THE WAY' : 'PENDING'}
+                        {o.status === 'delivered'
+                          ? 'DELIVERED'
+                          : o.status === 'on_the_way'
+                            ? 'ON THE WAY'
+                            : 'PENDING'}
                       </div>
                     </div>
                   </div>

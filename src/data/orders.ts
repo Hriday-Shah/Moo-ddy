@@ -9,7 +9,7 @@ export type OrderLine = {
 }
 
 export type PaymentMethod = 'card' | 'upi' | 'cod'
-export type OrderStatus = 'pending' | 'on_the_way'
+export type OrderStatus = 'pending' | 'on_the_way' | 'delivered'
 
 export type Order = {
   id: string
@@ -21,6 +21,7 @@ export type Order = {
   paymentDetail?: string
   status: OrderStatus
   deliveryConfirmedAt?: number
+  deliveredAt?: number
   subtotalInr: number
   lines: OrderLine[]
 }
@@ -63,7 +64,12 @@ export function updateOrderStatus(orderId: string, status: OrderStatus) {
   const orders = getOrdersRaw()
   const next = orders.map((o) =>
     o.id === orderId
-      ? { ...o, status, deliveryConfirmedAt: status === 'on_the_way' ? Date.now() : undefined }
+      ? {
+          ...o,
+          status,
+          deliveryConfirmedAt: status === 'on_the_way' ? Date.now() : o.deliveryConfirmedAt,
+          deliveredAt: status === 'delivered' ? Date.now() : o.deliveredAt,
+        }
       : o,
   )
   setOrdersRaw(next)

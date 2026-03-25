@@ -105,12 +105,18 @@ export function DeliveryHome() {
                       <span
                         className={[
                           'rounded-full px-2 py-1 text-[10px] font-black tracking-wider',
-                          o.status === 'on_the_way'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800',
+                          o.status === 'delivered'
+                            ? 'bg-slate-100 text-slate-700'
+                            : o.status === 'on_the_way'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800',
                         ].join(' ')}
                       >
-                        {o.status === 'on_the_way' ? 'ON THE WAY' : 'PENDING'}
+                        {o.status === 'delivered'
+                          ? 'DELIVERED'
+                          : o.status === 'on_the_way'
+                            ? 'ON THE WAY'
+                            : 'PENDING'}
                       </span>
                     </div>
                   </button>
@@ -168,14 +174,33 @@ export function DeliveryHome() {
                         : `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`
                       window.open(navUrl, '_blank')
                     }}
-                    className="w-full rounded-xl bg-white px-4 py-3 text-xs font-black tracking-wider text-zinc-950 transition hover:bg-zinc-100 sm:w-auto"
+                    disabled={selectedOrder.status !== 'pending'}
+                    className={[
+                      'w-full rounded-xl px-4 py-3 text-xs font-black tracking-wider transition sm:w-auto',
+                      selectedOrder.status !== 'pending'
+                        ? 'cursor-not-allowed bg-white/40 text-zinc-500'
+                        : 'bg-white text-zinc-950 hover:bg-zinc-100',
+                    ].join(' ')}
                   >
                     CONFIRM ORDER + START NAVIGATION
                   </button>
 
                   {selectedOrder.status === 'on_the_way' ? (
-                    <span className="rounded-xl border border-emerald-200 bg-emerald-100 px-3 py-2 text-xs font-black tracking-wider text-emerald-800">
-                      STATUS: ON THE WAY
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => updateOrderStatus(selectedOrder.id, 'delivered')}
+                        className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black tracking-wider text-white transition hover:bg-emerald-500 sm:w-auto"
+                      >
+                        COMPLETED DELIVERY
+                      </button>
+                      <span className="rounded-xl border border-emerald-200 bg-emerald-100 px-3 py-2 text-xs font-black tracking-wider text-emerald-800">
+                        STATUS: ON THE WAY
+                      </span>
+                    </>
+                  ) : selectedOrder.status === 'delivered' ? (
+                    <span className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-black tracking-wider text-slate-700">
+                      STATUS: DELIVERED
                     </span>
                   ) : (
                     <span className="rounded-xl border border-amber-200 bg-amber-100 px-3 py-2 text-xs font-black tracking-wider text-amber-800">

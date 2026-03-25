@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProducts, type Product } from '../data/products'
 import { getCustomerByEmail } from '../data/auth'
 import { addOrder, type Order, type PaymentMethod, useOrders } from '../data/orders'
-import { getSession } from '../data/session'
+import { useSession } from '../data/session'
 
 type CartLine = {
   product: Product
@@ -42,7 +42,7 @@ function getEtaMinutes(order: Order, nowMs: number) {
 export function CustomerHome() {
   const products = useProducts()
   const orders = useOrders()
-  const session = useMemo(() => getSession(), [])
+  const session = useSession()
   const customer = useMemo(
     () => (session.customerEmail ? getCustomerByEmail(session.customerEmail) : null),
     [session.customerEmail],
@@ -133,7 +133,8 @@ export function CustomerHome() {
     if (!customer?.email) return null
     const email = customer.email.toLowerCase()
     const mine = orders.filter((o) => o.customerEmail.toLowerCase() === email)
-    const ongoing = mine.find((o) => o.status === 'pending' || o.status === 'on_the_way') ?? null
+    const ongoing =
+      mine.find((o) => o.status === 'pending' || o.status === 'on_the_way') ?? null
     return ongoing
   }, [customer?.email, orders])
 
