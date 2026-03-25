@@ -2,7 +2,7 @@ import '@lottiefiles/dotlottie-wc'
 import { useEffect, useMemo, useState } from 'react'
 import { useProducts, type Product } from '../data/products'
 import { getCustomerByEmail } from '../data/auth'
-import { addOrder, type PaymentMethod } from '../data/orders'
+import { addOrder, type Order, type PaymentMethod, useOrders } from '../data/orders'
 import { getSession } from '../data/session'
 
 type CartLine = {
@@ -18,8 +18,30 @@ function formatInr(amount: number) {
   }).format(amount)
 }
 
+function formatMinutes(mins: number) {
+  const m = Math.max(0, Math.round(mins))
+  if (m < 1) return '1 min'
+  if (m === 1) return '1 min'
+  return `${m} mins`
+}
+
+function getEtaMinutes(order: Order, nowMs: number) {
+  // Simple heuristic (no backend/driver tracking yet).
+  // Pending: up to ~45 mins from order placement.
+  // On the way: up to ~20 mins from driver confirmation.
+  const baseMins = order.status === 'on_the_way' ? 20 : 45
+  const startMs =
+    order.status === 'on_the_way'
+      ? order.deliveryConfirmedAt ?? order.createdAt
+      : order.createdAt
+  const elapsedMins = (nowMs - startMs) / 60000
+  const remaining = baseMins - elapsedMins
+  return Math.max(0, Math.round(remaining))
+}
+
 export function CustomerHome() {
   const products = useProducts()
+  const orders = useOrders()
   const session = useMemo(() => getSession(), [])
   const customer = useMemo(
     () => (session.customerEmail ? getCustomerByEmail(session.customerEmail) : null),
@@ -36,6 +58,8 @@ export function CustomerHome() {
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [phrases, setPhrases] = useState<string[]>([])
   const [phraseIdx, setPhraseIdx] = useState(0)
+  const [ongoingOpen, setOngoingOpen] = useState(false)
+  const [nowTick, setNowTick] = useState(() => Date.now())
 
   const lines = useMemo(() => Object.values(cart).filter((l) => l.qty > 0), [cart])
   const totalQty = useMemo(() => lines.reduce((sum, l) => sum + l.qty, 0), [lines])
@@ -98,6 +122,24 @@ export function CustomerHome() {
     }, 7000)
     return () => window.clearTimeout(t)
   }, [orderPlaced])
+
+  useEffect(() => {
+    if (!ongoingOpen) return
+    const t = window.setInterval(() => setNowTick(Date.now()), 15_000)
+    return () => window.clearInterval(t)
+  }, [ongoingOpen])
+
+  const activeOrder = useMemo(() => {
+    if (!customer?.email) return null
+    const email = customer.email.toLowerCase()
+    const mine = orders.filter((o) => o.customerEmail.toLowerCase() === email)
+    const ongoing = mine.find((o) => o.status === 'pending' || o.status === 'on_the_way') ?? null
+    return ongoing
+  }, [customer?.email, orders])
+
+  useEffect(() => {
+    if (!activeOrder) setOngoingOpen(false)
+  }, [activeOrder])
 
   const saveAddress = (next: string) => {
     setAddress(next)
@@ -544,6 +586,96 @@ export function CustomerHome() {
           </aside>
         </div>
       </main>
+
+      {activeOrder ? (
+        <button
+          type="button"
+          onClick={() => setOngoingOpen(true)}
+          className="fixed bottom-4 right-4 z-40 rounded-2xl border border-white/20 bg-zinc-950/80 px-4 py-3 text-xs font-black tracking-wider text-white shadow-2xl shadow-black/30 backdrop-blur transition hover:bg-zinc-950 active:scale-[0.99]"
+          aria-label="View ongoing order"
+        >
+          ONGOING ORDER
+        </button>
+      ) : null}
+
+      {activeOrder && ongoingOpen ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm sm:p-6"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-zinc-950/85 p-5 text-white sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-[10px] font-black tracking-wider text-white/70">ONGOING ORDER</div>
+                <div className="mt-1 truncate text-lg font-black tracking-tight">{activeOrder.customerName}</div>
+                <div className="mt-1 text-xs font-semibold text-white/70">
+                  Status:{' '}
+                  <span className="font-black text-white">
+                    {activeOrder.status === 'on_the_way' ? 'ON THE WAY' : 'PENDING'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setOngoingOpen(false)}
+                className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-black tracking-wider text-white transition hover:bg-white/15"
+              >
+                CLOSE
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="text-[10px] font-black tracking-wider text-white/70">ETA</div>
+                {getEtaMinutes(activeOrder, nowTick) <= 0 ? (
+                  <div className="mt-1 text-sm font-black">Arriving soon</div>
+                ) : (
+                  <div className="mt-1 text-sm font-black">
+                    Approximately {formatMinutes(getEtaMinutes(activeOrder, nowTick))}
+                  </div>
+                )}
+                <div className="mt-1 text-xs font-semibold text-white/60">
+                  (Estimate based on status and time since order.)
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="text-[10px] font-black tracking-wider text-white/70">DELIVERY ADDRESS</div>
+                <div className="mt-1 whitespace-pre-wrap text-sm font-semibold text-white/90">
+                  {activeOrder.address}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[10px] font-black tracking-wider text-white/70">ORDER SUMMARY</div>
+                  <div className="text-sm font-black">{formatInr(activeOrder.subtotalInr)}</div>
+                </div>
+
+                <div className="mt-3 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
+                  {activeOrder.lines.map((l) => (
+                    <div key={l.productId} className="flex items-start justify-between gap-3 bg-white/5 p-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-black">{l.name}</div>
+                        <div className="mt-0.5 text-xs font-semibold text-white/70">
+                          {l.qty} × {formatInr(l.priceInr)}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-sm font-black">{formatInr(l.lineTotalInr)}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 text-xs font-semibold text-white/70">
+                  Payment: <span className="font-black text-white">{activeOrder.paymentMethod.toUpperCase()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {orderPlaced ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-sm">
