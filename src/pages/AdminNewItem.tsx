@@ -94,11 +94,10 @@ export function AdminNewItem() {
                 }
                 setSaving(true)
                 try {
-                  if (!imageFile) throw new Error('Select an image.')
-                  await addProduct({
+                  addProduct({
                     name: name.trim(),
                     priceInr: parsedPrice,
-                    imageFile,
+                    imageUrl: imagePreview,
                     ...(imageCredit.trim() ? { imageCredit: imageCredit.trim() } : {}),
                   })
                   navigate('/admin')

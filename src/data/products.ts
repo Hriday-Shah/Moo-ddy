@@ -1,21 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  collection,
-  deleteDoc,
-  deleteField,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore'
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
-import { firestore, storage } from '../lib/firebase'
 
 export type Product = {
   id: string
@@ -24,14 +7,54 @@ export type Product = {
   imageUrl: string
   /** Shown on the customer shop under the product image (e.g. photo credit). */
   imageCredit?: string
-  /** Internal: used to check duplicate names efficiently. */
-  normalizedName?: string
-  /** Internal: Storage path so we can delete the image. */
-  imageStoragePath?: string
   createdAt: number
 }
 
-const PRODUCTS_COL = 'products'
+const STORAGE_KEY = 'dairy.products.v1'
+const EVENT_NAME = 'dairy-products-changed'
+
+const SEED_PRODUCTS: Product[] = [
+  {
+    id: 'seed-cheese',
+    name: 'Cheese',
+    priceInr: 50,
+    imageUrl: '/items/cheese.jpg',
+    createdAt: Date.now(),
+  },
+  {
+    id: 'seed-milk-carton',
+    name: 'Milk Carton',
+    priceInr: 40,
+    imageUrl: '/items/milk-carton.jpg',
+    createdAt: Date.now(),
+  },
+]
+
+function safeParse(json: string | null): Product[] | null {
+  if (!json) return null
+  try {
+    const parsed = JSON.parse(json) as unknown
+    if (!Array.isArray(parsed)) return null
+    return parsed as Product[]
+  } catch {
+    return null
+  }
+}
+
+export function getProducts(): Product[] {
+  if (typeof window === 'undefined') return SEED_PRODUCTS
+
+  const stored = safeParse(window.localStorage.getItem(STORAGE_KEY))
+  if (stored && stored.length > 0) return stored
+
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_PRODUCTS))
+  return SEED_PRODUCTS
+}
+
+function setProducts(next: Product[]) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  window.dispatchEvent(new Event(EVENT_NAME))
+}
 
 function normalizeName(name: string) {
   return name.trim().replace(/\s+/g, ' ').toLowerCase()
@@ -44,82 +67,47 @@ export class DuplicateProductNameError extends Error {
   }
 }
 
-export async function addProduct(input: {
-  name: string
-  priceInr: number
-  imageFile: File
-  imageCredit?: string
-}) {
+export function addProduct(input: Omit<Product, 'id' | 'createdAt'>) {
+  const products = getProducts()
   const normalized = normalizeName(input.name)
-  const existing = await getDocs(
-    query(collection(firestore, PRODUCTS_COL), where('normalizedName', '==', normalized), limit(1)),
-  )
-  if (!existing.empty) throw new DuplicateProductNameError()
-
-  const productRef = doc(collection(firestore, PRODUCTS_COL))
-  const safeFilename = input.imageFile.name.replace(/[^\w.\-()]+/g, '_')
-  const storagePath = `product-images/${productRef.id}/${Date.now()}-${safeFilename}`
-  const objectRef = ref(storage, storagePath)
-
-  await uploadBytes(objectRef, input.imageFile, {
-    contentType: input.imageFile.type || undefined,
-  })
-
-  const imageUrl = await getDownloadURL(objectRef)
-  const createdAt = Date.now()
-
-  await setDoc(productRef, {
-    name: input.name.trim(),
-    normalizedName: normalized,
-    priceInr: input.priceInr,
-    imageUrl,
-    imageStoragePath: storagePath,
-    imageCredit: input.imageCredit?.trim() ? input.imageCredit.trim() : undefined,
-    createdAt,
-  })
-}
-
-export async function removeProduct(productId: string) {
-  const productRef = doc(firestore, PRODUCTS_COL, productId)
-  const snap = await getDoc(productRef)
-  const data = snap.exists() ? (snap.data() as { imageStoragePath?: unknown }) : null
-  const imageStoragePath = typeof data?.imageStoragePath === 'string' ? data.imageStoragePath : ''
-
-  await deleteDoc(productRef)
-  if (imageStoragePath) {
-    await deleteObject(ref(storage, imageStoragePath)).catch(() => {
-      // Best-effort: product doc is already removed.
-    })
+  if (products.some((p) => normalizeName(p.name) === normalized)) {
+    throw new DuplicateProductNameError()
   }
+  const id = `p_${crypto.randomUUID()}`
+  const next: Product = { ...input, id, createdAt: Date.now() }
+  setProducts([next, ...products])
 }
 
-export async function updateProductImageCredit(productId: string, imageCredit: string) {
+export function removeProduct(productId: string) {
+  const products = getProducts()
+  setProducts(products.filter((p) => p.id !== productId))
+}
+
+export function updateProductImageCredit(productId: string, imageCredit: string) {
+  const products = getProducts()
+  const idx = products.findIndex((p) => p.id === productId)
+  if (idx < 0) return
   const trimmed = imageCredit.trim()
-  const productRef = doc(firestore, PRODUCTS_COL, productId)
-  await updateDoc(productRef, {
-    imageCredit: trimmed ? trimmed : deleteField(),
-  })
+  const prev = products[idx]
+  const nextProduct: Product = { ...prev }
+  if (trimmed) nextProduct.imageCredit = trimmed
+  else delete nextProduct.imageCredit
+  const next = [...products]
+  next[idx] = nextProduct
+  setProducts(next)
 }
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setState] = useState<Product[]>(() => getProducts())
 
   useEffect(() => {
-    const q = query(collection(firestore, PRODUCTS_COL), orderBy('createdAt', 'desc'))
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const next: Product[] = snap.docs.map((d) => {
-          const data = d.data() as Omit<Product, 'id'>
-          return { id: d.id, ...data }
-        })
-        setProducts(next)
-      },
-      () => {
-        setProducts([])
-      },
-    )
-    return () => unsub()
+    const onChange = () => setState(getProducts())
+    window.addEventListener(EVENT_NAME, onChange)
+    window.addEventListener('storage', onChange)
+    return () => {
+      window.removeEventListener(EVENT_NAME, onChange)
+      window.removeEventListener('storage', onChange)
+    }
   }, [])
 
   const sorted = useMemo(
